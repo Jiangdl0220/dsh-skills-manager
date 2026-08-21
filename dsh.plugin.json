@@ -1,7 +1,7 @@
 {
   "name": "@jiangdaoli/dsh-skills-manager",
   "description": "Manage installed DeepSeek Harness skills: browse the full catalog in Settings, enable/disable without uninstalling, and delete into a restorable trash.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "entry": {
     "name": "@jiangdaoli/dsh-skills-manager",
     "inject": [

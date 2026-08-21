@@ -1,6 +1,6 @@
 {
   "name": "@jiangdaoli/dsh-skills-manager",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Manage installed DeepSeek Harness skills: browse the full catalog in Settings (beyond the \"/\" picker), enable/disable without uninstalling, and delete into a restorable trash. Works on desktop and web.",
   "type": "module",
   "repository": {
