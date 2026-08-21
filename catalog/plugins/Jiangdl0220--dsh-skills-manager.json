@@ -1,0 +1,12 @@
+{
+  "$schema": "../schema/plugin.schema.json",
+  "id": "Jiangdl0220/dsh-skills-manager",
+  "name": "Skills Manager",
+  "repository": "https://github.com/Jiangdl0220/dsh-skills-manager",
+  "category": "skill",
+  "description": {
+    "en": "Manage installed DSH skills from Settings: browse the full catalog beyond the \"/\" picker, disable/enable without uninstalling, and delete into a restorable trash. Desktop + web.",
+    "zh": "在设置面板管理已安装的技能：浏览完整技能目录（不再只有 \"/\" 入口），停用/启用无需卸载，删除进入可恢复的回收站。支持桌面端与 web 端。"
+  },
+  "added": "2026-08-21"
+}
