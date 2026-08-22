@@ -1,8 +1,17 @@
 # dsh-skills-manager
 
-Manage installed [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) skills from a dedicated **Settings page** — no more digging through the `/` picker.
+> Manage installed [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) skills from a dedicated **Settings page** — browse the full skill catalog (no more digging through the `/` picker), search, disable/enable without reinstalling, and delete into a restorable trash. Works on desktop and web.
 
-- **Browse**: a new «Skills» settings page lists every installed skill (name, description, source, path, state) with search.
+DSH skills are only visible through the `/` command in the composer, with no way to disable or remove them. This plugin adds a «Skills» settings page that turns the skill catalog into a manageable list.
+
+## Screenshots
+
+<!-- Drop screenshots into docs/screenshots/ and reference them below with `![alt](docs/screenshots/file.png)` -->
+![Skills management list](docs/screenshots/skills-list.png)
+
+## Features
+
+- **Full skill list**: every installed skill (name, description, source, path, state) with **search** — no more paging through the `/` picker.
 - **Disable / Enable**: disabling hides a skill from the `/` picker while keeping its files — re-enable anytime, no uninstall/reinstall.
 - **Delete (trash)**: deletion moves the skill directory into `~/.dsh/.skill-trash/`, restorable with one click.
 - **Delete forever**: trashed entries can be permanently purged (irreversible).
@@ -12,15 +21,15 @@ Works on both **DSH Desktop** and **`dsh web`**: the plugin only uses official D
 
 ## Install
 
-Once published to npm (`@jiangdaoli/dsh-skills-manager`):
-
 ```sh
 dsh plugin --profile desktop add @jiangdaoli/dsh-skills-manager   # Desktop
 # or
 dsh plugin --profile web add @jiangdaoli/dsh-skills-manager       # web
 ```
 
-Or install from **Settings → Plugins → Market** once the package is listed in a catalog source. Restart DSH after installing, then open **Settings → Skills**.
+After install + restart, open **Settings → Skills**.
+
+> **Install from npm** (the package name above). This GitHub repo contains source only — the built `lib/` artifacts are produced by CI at release time, so installing straight from the repo would miss files. To install from source, run `pnpm install && pnpm build` first.
 
 ## How it works
 
@@ -42,19 +51,6 @@ pnpm build     # tsc declarations + esbuild (lib/index.js host + lib/client.js c
 pnpm typecheck
 pnpm node test/core.test.mjs   # core logic tests (temp dirs + fake fs/shell)
 ```
-
-Local install test:
-
-```sh
-dsh plugin --profile skm-test add .
-dsh --profile skm-test --dump-config
-```
-
-## Release
-
-- npm package: `@jiangdaoli/dsh-skills-manager` (scoped, community convention)
-- GitHub repo: [Jiangdl0220/dsh-skills-manager](https://github.com/Jiangdl0220/dsh-skills-manager) (topic: `dsh-plugin`)
-- Publishing: push a `vX.Y.Z` tag; [GitHub Actions](.github/workflows/release.yml) publishes via **npm OIDC trusted publishing** (no long-lived npm token; first-time binding on npmjs.com is required — see the workflow comments)
 
 ## License
 

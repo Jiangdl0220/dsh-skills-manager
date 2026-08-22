@@ -1,10 +1,19 @@
 # dsh-skills-manager
 
-Manage installed [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) skills from a dedicated **Settings page** — no more digging through the `/` picker.
+> 在 DSH（DeepSeek Harness）的设置面板里**管理已安装的技能**：浏览完整技能目录（不再只有 `/` 命令入口）、搜索、停用/启用（无需卸载重装）、删除进可恢复的回收站。桌面端与 Web 端通用。
 
-- **浏览**：设置面板新增「技能管理」页，列出所有已安装技能（名称、描述、来源、位置、状态），支持搜索过滤。
-- **停用 / 启用**：停用后技能从 `/` 列表隐藏，但文件保留，随时可重新启用（无需卸载重装）。
-- **删除（回收站）**：删除把技能目录移入 `~/.dsh/.skill-trash/`，可一键恢复。
+DSH 的技能只能在会话输入框用 `/` 命令查看，且没有删除/停用能力。这个插件在设置面板新增「**技能管理**」页，把技能目录变成可管理的列表。
+
+## 截图
+
+<!-- 把截图放到 docs/screenshots/ 后，在下方按 `![说明](docs/screenshots/文件名.png)` 填入 -->
+![技能管理列表](docs/screenshots/skills-list.png)
+
+## 功能
+
+- **完整技能列表**：所有已安装技能（名称、描述、来源、位置、状态）一目了然，支持**搜索过滤**——不需要再靠 `/` 命令逐个翻。
+- **停用 / 启用**：停用后技能从 `/` 命令列表隐藏，但文件保留，随时可重新启用（无需卸载重装）。
+- **删除（回收站）**：删除把技能目录移入 `~/.dsh/.skill-trash/`，可一键恢复，误删不慌。
 - **彻底删除**：回收站条目可彻底清除（不可恢复）。
 - **内置技能只读**：随应用分发的 bundled 技能标记为只读，不可误删。
 
@@ -12,15 +21,15 @@ Manage installed [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harn
 
 ## 安装
 
-发布到 npm 后（`@jiangdaoli/dsh-skills-manager`）：
-
 ```sh
 dsh plugin --profile desktop add @jiangdaoli/dsh-skills-manager   # Desktop
 # 或
 dsh plugin --profile web add @jiangdaoli/dsh-skills-manager       # web
 ```
 
-也可以在 **设置 → 插件 → 市场** 中安装（需先在目录源中收录）。安装后重启 DSH，在 **设置 → 技能管理** 查看。
+安装后重启 DSH，在 **设置 → 技能管理** 查看。
+
+> **请从 npm 安装**（上方的包名）。GitHub 仓库只包含源码，构建产物（`lib/`）在发布时由 CI 生成，从仓库直接安装会缺文件。从源码安装请先 `pnpm install && pnpm build`。
 
 ## 工作原理
 
@@ -42,19 +51,6 @@ pnpm build     # tsc 类型声明 + esbuild（lib/index.js host + lib/client.js 
 pnpm typecheck
 pnpm node test/core.test.mjs   # 核心逻辑测试（临时目录 + 假 fs/shell）
 ```
-
-本地安装测试：
-
-```sh
-dsh plugin --profile skm-test add .
-dsh --profile skm-test --dump-config
-```
-
-## 发布
-
-- npm 包名：`@jiangdaoli/dsh-skills-manager`（scoped，社区约定）
-- GitHub 仓库：[Jiangdl0220/dsh-skills-manager](https://github.com/Jiangdl0220/dsh-skills-manager)（topic: `dsh-plugin`）
-- 发布：打 `vX.Y.Z` tag 触发 [GitHub Actions](.github/workflows/release.yml) 通过 **npm OIDC trusted publishing** 发布（无需长期 npm token；首次需在 npm 后台绑定仓库，见 workflow 注释）
 
 ## License
 
