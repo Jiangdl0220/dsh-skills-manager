@@ -110,7 +110,7 @@ console.log('\n[1] list')
 let list = await core.listManagedSkills(fs, skillsCatalog, roots)
 check('enabled dir skill listed', list.some((s) => s.name === 'zz-test-skill' && s.state === 'enabled' && s.manageable && s.manageFile?.endsWith('/SKILL.md')), JSON.stringify(list.map((s) => s.name)))
 check('loose file skill listed', list.some((s) => s.name === 'zz-loose' && s.kind === 'file' && s.manageable), '')
-check('catalog description attached', list.find((s) => s.name === 'zz-test-skill')?.description === 'catalog description', '')
+check('disk description preferred over catalog leak', list.find((s) => s.name === 'zz-test-skill')?.description === 'test description', '')
 check('bundled is read-only', list.some((s) => s.name === 'builtin-example' && !s.manageable && s.readOnlyReason !== null), '')
 const enabledCount = list.filter((s) => s.state === 'enabled').length
 
@@ -180,6 +180,26 @@ try {
   restoreRejected = true
 }
 check('restore rejects non-trash path', restoreRejected, '')
+
+// ── 8. frontmatter block scalars ────────────────────────────────────────────
+console.log('\n[8] frontmatter block scalars')
+const literal = `---\nname: browse\nversion: 1.1.0\ndescription: |\n  Fast headless browser for QA testing and site dogfooding. Navigate any URL, interact with\n  elements, verify page state, diff before/after actions.\n---\n# body\n`
+const lit = core.parseLightFrontmatter(literal)
+// literal | preserves newlines (block-scalar semantics); the UI collapses them
+check('literal | gives real text (newlines kept)', lit.description === 'Fast headless browser for QA testing and site dogfooding. Navigate any URL, interact with\nelements, verify page state, diff before/after actions.', JSON.stringify(lit.description))
+check('literal does not leak indicator', lit.description !== '|' && !lit.description.startsWith('|'), '')
+
+const folded = `---\nname: agent-reach\ndescription: >\n  Give your AI agent eyes to see the entire internet. Install and configure\n  upstream tools for Twitter/X, Reddit, YouTube, GitHub, Bilibili.\n  Use when: (1) setting up platform access tools for the first time,\n  (2) checking which platforms are available.\n---\n`
+const fol = core.parseLightFrontmatter(folded)
+check('folded > folds lines to spaces', fol.description === 'Give your AI agent eyes to see the entire internet. Install and configure upstream tools for Twitter/X, Reddit, YouTube, GitHub, Bilibili. Use when: (1) setting up platform access tools for the first time, (2) checking which platforms are available.', JSON.stringify(fol.description))
+check('folded does not leak ">"', fol.description !== '>', '')
+
+const chomped = `---\nname: x\ndescription: >-\n  one two\n  three four\n---\n`
+check('chomped >- folds', core.parseLightFrontmatter(chomped).description === 'one two three four', '')
+
+const quoted = `---\nname: apple-design\ndescription: "Single line with spaces"\n---\n`
+check('quoted single-line', core.parseLightFrontmatter(quoted).description === 'Single line with spaces', '')
+check('plain single-line name', core.parseLightFrontmatter('---\nname: anything\ndescription: plain\n---\n').name === 'anything', '')
 
 // ── cleanup ────────────────────────────────────────────────────────────────
 rmSync(ROOT, { recursive: true, force: true })

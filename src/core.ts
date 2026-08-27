@@ -93,21 +93,76 @@ export function sourceLabel(source: string | undefined, provider: string): strin
   return provider === 'filesystem' ? '用户' : provider
 }
 
-/** Light frontmatter reader: tolerant of malformed YAML, extracts the fields the manager displays. */
+/**
+ * Light frontmatter reader: tolerant of malformed YAML, extracts the fields
+ * the manager displays. Handles single-line values, quoted values, and YAML
+ * block scalars (`|` literal, `>` folded) — the shipped skill parser only
+ * reads a single-line `description:` and leaks the bare `|`/`>` indicator,
+ * which is why a list rendered those as a lone punctuation char.
+ */
 export function parseLightFrontmatter(raw: string): { name?: string; description?: string; whenToUse?: string } {
   const text = raw.length > 8000 ? raw.slice(0, 8000) : raw
   const m = /^---\r?\n([\s\S]*?)\r?\n---/.exec(text)
   if (m === undefined || m === null) return {}
+  const lines = m[1].split(/\r?\n/)
   const out: { name?: string; description?: string; whenToUse?: string } = {}
-  for (const line of m[1].split(/\r?\n/)) {
-    const kv = /^([A-Za-z][A-Za-z0-9_-]*):\s*(.*)$/.exec(line.trim())
-    if (kv === undefined || kv === null) continue
+  let i = 0
+  while (i < lines.length) {
+    const kv = /^([A-Za-z][A-Za-z0-9_-]*):[ \t]*(.*)$/.exec(lines[i])
+    if (kv === undefined || kv === null) { i++; continue }
     const key = kv[1]
-    if (key === 'name') out.name = unquote(kv[2])
-    else if (key === 'description') out.description = unquote(kv[2])
-    else if (key === 'whenToUse') out.whenToUse = unquote(kv[2])
+    const trailing = kv[2].trim()
+    const block = /^([|>])([+-]?)(?:[ \t]*#.*)?$/.exec(trailing)
+    let value: string
+    if (block !== null) {
+      // YAML block scalar: collect the following more-indented lines.
+      const style = block[1] as '|' | '>'
+      const collected: string[] = []
+      let j = i + 1
+      while (j < lines.length) {
+        const l = lines[j]
+        if (l !== '' && !/^[ \t]/.test(l)) break
+        collected.push(l)
+        j++
+      }
+      value = renderBlockScalar(style, collected)
+      i = j
+    } else {
+      value = unquote(trailing)
+      i++
+    }
+    if (key === 'name') out.name = value
+    else if (key === 'description') out.description = value
+    else if (key === 'whenToUse') out.whenToUse = value
   }
   return out
+}
+
+/** Render a collected YAML block-scalar body (indented lines) per its style. */
+function renderBlockScalar(style: '|' | '>', collected: string[]): string {
+  let start = 0
+  while (start < collected.length && collected[start].trim() === '') start++
+  let end = collected.length - 1
+  while (end >= start && collected[end].trim() === '') end--
+  if (end < start) return ''
+  const body = collected.slice(start, end + 1)
+  const indents = body
+    .filter((l) => l.trim() !== '')
+    .map((l) => (/^[ \t]*/.exec(l) !== null ? (/^[ \t]*/.exec(l) as RegExpExecArray)[0].length : 0))
+  const minIndent = indents.length > 0 ? Math.min(...indents) : 0
+  const deindented = body.map((l) => l.slice(minIndent).replace(/[ \t]+$/, ''))
+  if (style === '|') return deindented.join('\n').trim()
+  // folded: single newlines fold to a space, a blank line becomes a newline
+  let result = ''
+  let sawBlank = false
+  for (const l of deindented) {
+    const t = l.trim()
+    if (t === '') { sawBlank = true; continue }
+    if (result !== '') result += sawBlank ? '\n' : ' '
+    result += t
+    sawBlank = false
+  }
+  return result.trim()
 }
 
 function unquote(value: string): string {
@@ -116,6 +171,33 @@ function unquote(value: string): string {
     return v.slice(1, -1)
   }
   return v
+}
+
+/** True when a string is just a leaked YAML block-scalar indicator (e.g. `|`, `>-`). */
+function isBlockIndicator(value: string): boolean {
+  return /^[|>][+-]?$/.test(value.trim())
+}
+
+/** Prefer the disk-read description over the catalog one: the catalog sometimes
+ * leaks a `|`/`>` indicator, which must never win over real text. */
+function preferDescription(disk: string, catalog: string): string {
+  const usable = (s: string): boolean => s.trim() !== '' && !isBlockIndicator(s)
+  if (usable(disk)) return disk
+  if (usable(catalog)) return catalog
+  return disk
+}
+
+/** Best-effort description read straight from a skill container's SKILL.md
+ * (handles the `.disabled` twin), falling back to `fallback` on any failure. */
+async function describeFromDisk(fs: FsLike, container: string | null, fallback: string): Promise<string> {
+  if (container === null) return fallback
+  for (const md of [`${container}/SKILL.md`, `${container}/SKILL.md.disabled`]) {
+    const raw = await tryRead(fs, md)
+    if (raw === undefined) continue
+    const parsed = parseLightFrontmatter(raw)
+    return preferDescription(parsed.description ?? '', fallback)
+  }
+  return fallback
 }
 
 /** A catalog row the scan merged into a disk skill (or emitted read-only). */
@@ -171,7 +253,7 @@ export async function listManagedSkills(
     // a realpath-normalization drift between the catalog locator and the disk
     // scan still attaches the catalog metadata.
     const meta = byContainer.get(containerKey) ?? byNameAndRoot.get(`${skill.source}\u0000${skill.name}`)
-    const description = meta?.description ?? skill.description
+    const description = preferDescription(skill.description, meta?.description ?? '')
     const whenToUse = meta?.whenToUse ?? skill.whenToUse
     entries.push({
       name: skill.name,
@@ -213,9 +295,11 @@ export async function listManagedSkills(
       if (info?.type !== 'directory') continue
     }
     const base = summary.resourceBase
+    const container = row.container
+    const description = await describeFromDisk(fs, container, summary.description)
     entries.push({
       name: summary.name,
-      description: summary.description,
+      description,
       whenToUse: summary.whenToUse ?? null,
       modelInvocable: summary.invocation?.modelInvocable ?? true,
       source,
@@ -340,7 +424,7 @@ async function scanTrash(fs: FsLike, roots: SkillRoots): Promise<SkillEntry[]> {
     }
     out.push({
       name,
-      description: '',
+      description: await describeFromDisk(fs, trashDir, ''),
       whenToUse: null,
       modelInvocable: true,
       source: 'trash',
