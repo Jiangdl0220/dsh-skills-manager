@@ -239,6 +239,24 @@ export const cssText = `
   letter-spacing: 0.02em;
   white-space: nowrap;
 }
+/* Custom glyph for the skills section in the settings nav. The stock
+   settings.section registration carries no icon field (only id/order/label,
+   with an unknown id always falling back to the default gear), so — the same
+   approach third-party settings surfaces use — the plugin marks the nav button
+   whose text matches the section label and paints its own icon via a CSS mask,
+   hiding the gear. See adoptSettingsNavGlyph() in index.ts. */
+button[data-dsh-skm-nav-icon] > svg:first-child {
+  display: none;
+}
+button[data-dsh-skm-nav-icon]::before {
+  content: '';
+  flex: none;
+  width: 16px;
+  height: 16px;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23000' d='M8 1l1.7 5.3L15 8l-5.3 1.7L8 15l-1.7-5.3L1 8l5.3-1.7z'/%3E%3C/svg%3E") no-repeat center / contain;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23000' d='M8 1l1.7 5.3L15 8l-5.3 1.7L8 15l-1.7-5.3L1 8l5.3-1.7z'/%3E%3C/svg%3E") no-repeat center / contain;
+}
 `
 
 /**

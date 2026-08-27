@@ -2,6 +2,13 @@
 
 本文件记录 `@jiangdaoli/dsh-skills-manager` 的每个版本变更，随 npm 包一起发布；GitHub Release 页面同步对应说明。
 
+## 未发布 — 0.1.4（验收中）
+
+当前预览包：`@jiangdaoli/dsh-skills-manager@0.1.4-accept.1`（本地 tarball 安装，验收通过后发布正式版 0.1.4）
+
+### 新增
+- **设置导航自定义图标**：`settings.section` 注册只支持 `id/order/label`，未知 id 的导航项固定是齿轮。本版沿用第三方设置页面的做法，给「技能管理」的导航按钮打标记并用 CSS mask 覆盖齿轮，换成星形「技能」图标（`styles.ts` + `index.ts` 的 `adoptSettingsNavGlyph`）。不改 DSH 契约、只在 UI 层做展示替换。
+
 ## 0.1.3 — 2026-08-27
 
 ### 新增
