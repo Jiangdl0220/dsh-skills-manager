@@ -2,9 +2,7 @@
 
 本文件记录 `@jiangdaoli/dsh-skills-manager` 的每个版本变更，随 npm 包一起发布；GitHub Release 页面同步对应说明。
 
-## 未发布 — 0.1.3（验收中）
-
-当前预览包：`@jiangdaoli/dsh-skills-manager@0.1.3-accept.2`（本地 tarball 安装，验收通过后发布正式版 0.1.3）
+## 0.1.3 — 2026-08-27
 
 ### 新增
 - **每页条数自定义**：工具栏新增选择器（10 / 20 / 50 / 100 条或「一页全部」），选择持久记住（localStorage），切换后回到第 1 页。
