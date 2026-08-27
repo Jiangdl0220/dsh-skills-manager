@@ -11,7 +11,7 @@ DSH skills are only visible through the `/` command in the composer, with no way
 
 ## Features
 
-- **Full skill list**: every installed skill (name, description, source, path, state) with **search** — no more paging through the `/` picker.
+- **Full skill list**: every installed skill (name, description, source, path, state) with **search** and **pagination** (20 per page) — no more paging through the `/` picker.
 - **Disable / Enable**: disabling hides a skill from the `/` picker while keeping its files — re-enable anytime, no uninstall/reinstall.
 - **Delete (trash)**: deletion moves the skill directory into `~/.dsh/.skill-trash/`, restorable with one click.
 - **Delete forever**: trashed entries can be permanently purged (irreversible).

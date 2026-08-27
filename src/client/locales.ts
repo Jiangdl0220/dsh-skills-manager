@@ -42,6 +42,9 @@ export const zh = {
   'loadFailed': '加载失败',
   'manageable': '可管理',
   'notManageable': '只读',
+  'prevPage': '上一页',
+  'nextPage': '下一页',
+  'pageOf': '第 {a} / {b} 页',
 }
 
 /** English dictionary mirroring the Chinese keys. */
@@ -83,6 +86,9 @@ export const en: Record<string, string> = {
   'loadFailed': 'Failed to load',
   'manageable': 'Managed',
   'notManageable': 'Read-only',
+  'prevPage': 'Prev',
+  'nextPage': 'Next',
+  'pageOf': 'Page {a} of {b}',
 }
 
 /** Locale namespace id. */

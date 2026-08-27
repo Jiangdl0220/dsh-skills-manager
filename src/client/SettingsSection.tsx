@@ -20,6 +20,9 @@ const stateKey = (state: string): string => {
   return 'trashed'
 }
 
+/** Number of skill rows per page. */
+const PAGE_SIZE = 20
+
 /** The installed-skill list with management actions. */
 export function SettingsSection(_props: PropsRuntime<'settings.section'>): ReactElement {
   const [, tick] = useState(0)
@@ -31,6 +34,7 @@ export function SettingsSection(_props: PropsRuntime<'settings.section'>): React
     loading: false,
   })
   const [query, setQuery] = useState('')
+  const [pageIdx, setPageIdx] = useState(0)
   const [confirm, setConfirm] = useState<Confirm>(null)
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
@@ -89,7 +93,16 @@ export function SettingsSection(_props: PropsRuntime<'settings.section'>): React
     )
   }, [items, query])
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const safePage = Math.min(pageIdx, totalPages - 1)
+  const pageStart = safePage * PAGE_SIZE
+  const visible = useMemo(
+    () => filtered.slice(pageStart, pageStart + PAGE_SIZE),
+    [filtered, pageStart],
+  )
+
   const rows: ReactElement[] = []
+  const itemRows: ReactElement[] = []
 
   rows.push(
     <div className="dsh_skm_toolbar" key="toolbar">
@@ -98,7 +111,7 @@ export function SettingsSection(_props: PropsRuntime<'settings.section'>): React
         className="dsh_skm_search"
         placeholder={t('search')}
         value={query}
-        onChange={(event) => { setQuery(event.target.value); setConfirm(null) }}
+        onChange={(event) => { setQuery(event.target.value); setPageIdx(0); setConfirm(null) }}
       />
       <button className="dsh_skm_btn" onClick={loadList} disabled={list.loading}>
         {list.loading ? t('loading') : t('refresh')}
@@ -116,7 +129,7 @@ export function SettingsSection(_props: PropsRuntime<'settings.section'>): React
     )
   }
 
-  for (const item of filtered) {
+  for (const item of visible) {
     const key = `${item.state}:${item.path ?? item.trashDir ?? item.name}`
     const badge = (
       <span className={`dsh_skm_badge dsh_skm_badge_${stateKey(item.state)}`} key="badge">
@@ -181,7 +194,7 @@ export function SettingsSection(_props: PropsRuntime<'settings.section'>): React
     const metaParts = [item.sourceLabel, item.path ?? item.trashDir ?? ''].filter((part) => part !== '')
     const description = item.description !== '' ? item.description : (item.readOnlyReason ?? '')
 
-    rows.push(
+    itemRows.push(
       <div className={`dsh_skm_item${item.state === 'disabled' ? ' dsh_skm_item_disabled' : ''}`} key={key}>
         <div className="dsh_skm_item_body">
           <div className="dsh_skm_item_title">
@@ -200,7 +213,7 @@ export function SettingsSection(_props: PropsRuntime<'settings.section'>): React
         : confirm.kind === 'trash' ? t('deleteConfirm', { name: item.name })
         : confirm.kind === 'restore' ? t('restoreConfirm', { name: item.name })
         : t('deleteForeverConfirm', { name: item.name })
-      rows.push(
+      itemRows.push(
         <div className="dsh_skm_confirm" key={`${key}:confirm`}>
           <span className="dsh_skm_confirm_text">{label}</span>
           <button
@@ -225,6 +238,31 @@ export function SettingsSection(_props: PropsRuntime<'settings.section'>): React
             {busy ? t('busy') : t('confirm')}
           </button>
           <button className="dsh_skm_btn" disabled={busy} onClick={() => setConfirm(null)}>{t('cancel')}</button>
+        </div>,
+      )
+    }
+  }
+
+  if (itemRows.length > 0) {
+    rows.push(<div className="dsh_skm_list" key="list">{itemRows}</div>)
+    if (totalPages > 1) {
+      rows.push(
+        <div className="dsh_skm_pager" key="pager">
+          <button
+            className="dsh_skm_btn"
+            disabled={busy || safePage === 0}
+            onClick={() => { setConfirm(null); setPageIdx(safePage - 1) }}
+          >
+            {t('prevPage')}
+          </button>
+          <span className="dsh_skm_pager_info">{t('pageOf', { a: String(safePage + 1), b: String(totalPages) })}</span>
+          <button
+            className="dsh_skm_btn"
+            disabled={busy || safePage >= totalPages - 1}
+            onClick={() => { setConfirm(null); setPageIdx(safePage + 1) }}
+          >
+            {t('nextPage')}
+          </button>
         </div>,
       )
     }

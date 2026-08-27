@@ -90,7 +90,7 @@ export const cssText = `
 .dsh_skm_list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 .dsh_skm_item {
   display: flex;
@@ -199,6 +199,20 @@ export const cssText = `
   flex: 1;
   min-width: 0;
   color: var(--dsw-alias-label-secondary);
+}
+.dsh_skm_pager {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+.dsh_skm_pager_info {
+  font-size: 12px;
+  color: var(--dsw-alias-label-tertiary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 `
 
