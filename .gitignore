@@ -3,3 +3,6 @@ lib/
 *.tgz
 *.tsbuildinfo
 .DS_Store
+
+# local preview tarballs
+pack/

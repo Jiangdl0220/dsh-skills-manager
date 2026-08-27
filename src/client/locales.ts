@@ -45,6 +45,9 @@ export const zh = {
   'prevPage': '上一页',
   'nextPage': '下一页',
   'pageOf': '第 {a} / {b} 页',
+  'perPage': '{n} 条/页',
+  'showAll': '一页全部',
+  'noDescription': '暂无描述',
 }
 
 /** English dictionary mirroring the Chinese keys. */
@@ -89,6 +92,9 @@ export const en: Record<string, string> = {
   'prevPage': 'Prev',
   'nextPage': 'Next',
   'pageOf': 'Page {a} of {b}',
+  'perPage': '{n} / page',
+  'showAll': 'Show all',
+  'noDescription': 'No description',
 }
 
 /** Locale namespace id. */

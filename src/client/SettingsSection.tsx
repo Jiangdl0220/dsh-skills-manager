@@ -20,8 +20,36 @@ const stateKey = (state: string): string => {
   return 'trashed'
 }
 
-/** Number of skill rows per page. */
-const PAGE_SIZE = 20
+/** Default number of skill rows per page. */
+const DEFAULT_PAGE_SIZE = 20
+
+/** Page-size choices offered in the toolbar (0 means "show all on one page"). */
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100]
+
+/** Page-size persistence key (best effort; a blocked localStorage just falls back). */
+const PAGE_SIZE_STORAGE_KEY = 'dsh_skm_page_size'
+
+/** Restore the last chosen page size; anything unreadable falls back to the default. */
+function loadPageSize(): number {
+  try {
+    const raw = window.localStorage.getItem(PAGE_SIZE_STORAGE_KEY)
+    if (raw === null) return DEFAULT_PAGE_SIZE
+    const parsed = Number.parseInt(raw, 10)
+    if (!Number.isFinite(parsed) || parsed < 0) return DEFAULT_PAGE_SIZE
+    return parsed
+  } catch {
+    return DEFAULT_PAGE_SIZE
+  }
+}
+
+/** Persist the page size; failures are silently ignored (non-essential). */
+function savePageSize(size: number): void {
+  try {
+    window.localStorage.setItem(PAGE_SIZE_STORAGE_KEY, String(size))
+  } catch {
+    // storage unavailable (privacy mode etc.) — keep working without persistence
+  }
+}
 
 /** The installed-skill list with management actions. */
 export function SettingsSection(_props: PropsRuntime<'settings.section'>): ReactElement {
@@ -35,6 +63,7 @@ export function SettingsSection(_props: PropsRuntime<'settings.section'>): React
   })
   const [query, setQuery] = useState('')
   const [pageIdx, setPageIdx] = useState(0)
+  const [pageSize, setPageSize] = useState<number>(loadPageSize)
   const [confirm, setConfirm] = useState<Confirm>(null)
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
@@ -93,13 +122,20 @@ export function SettingsSection(_props: PropsRuntime<'settings.section'>): React
     )
   }, [items, query])
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const effectiveSize = pageSize > 0 ? pageSize : Math.max(filtered.length, 1)
+  const totalPages = Math.max(1, Math.ceil(filtered.length / effectiveSize))
   const safePage = Math.min(pageIdx, totalPages - 1)
-  const pageStart = safePage * PAGE_SIZE
+  const pageStart = safePage * effectiveSize
   const visible = useMemo(
-    () => filtered.slice(pageStart, pageStart + PAGE_SIZE),
-    [filtered, pageStart],
+    () => filtered.slice(pageStart, pageStart + effectiveSize),
+    [filtered, pageStart, effectiveSize],
   )
+
+  const changePageSize = (next: number): void => {
+    setPageSize(next)
+    setPageIdx(0)
+    savePageSize(next)
+  }
 
   const rows: ReactElement[] = []
   const itemRows: ReactElement[] = []
@@ -113,6 +149,17 @@ export function SettingsSection(_props: PropsRuntime<'settings.section'>): React
         value={query}
         onChange={(event) => { setQuery(event.target.value); setPageIdx(0); setConfirm(null) }}
       />
+      <select
+        className="dsh_skm_select"
+        value={String(pageSize)}
+        disabled={busy}
+        onChange={(event) => { changePageSize(Number.parseInt(event.target.value, 10)) }}
+      >
+        {PAGE_SIZE_OPTIONS.map((size) => (
+          <option value={String(size)} key={size}>{t('perPage', { n: String(size) })}</option>
+        ))}
+        <option value="0">{t('showAll')}</option>
+      </select>
       <button className="dsh_skm_btn" onClick={loadList} disabled={list.loading}>
         {list.loading ? t('loading') : t('refresh')}
       </button>
@@ -192,7 +239,8 @@ export function SettingsSection(_props: PropsRuntime<'settings.section'>): React
     }
 
     const metaParts = [item.sourceLabel, item.path ?? item.trashDir ?? ''].filter((part) => part !== '')
-    const description = item.description !== '' ? item.description : (item.readOnlyReason ?? '')
+    const rawDescription = item.description !== '' ? item.description : (item.readOnlyReason ?? '')
+    const description = rawDescription.replace(/\s+/g, ' ').trim()
 
     itemRows.push(
       <div className={`dsh_skm_item${item.state === 'disabled' ? ' dsh_skm_item_disabled' : ''}`} key={key}>
@@ -201,7 +249,9 @@ export function SettingsSection(_props: PropsRuntime<'settings.section'>): React
             <span className="dsh_skm_item_name">{item.name}</span>
             {badge}
           </div>
-          {description !== '' ? <div className="dsh_skm_item_desc">{description}</div> : null}
+          {description !== ''
+            ? <div className="dsh_skm_item_desc">{description}</div>
+            : <div className="dsh_skm_item_desc dsh_skm_item_desc_empty">{t('noDescription')}</div>}
           {metaParts.length > 0 ? <div className="dsh_skm_item_meta">{metaParts.join(' · ')}</div> : null}
         </div>
         <div className="dsh_skm_item_actions">{actions}</div>
