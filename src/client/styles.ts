@@ -260,12 +260,29 @@ button[data-dsh-skm-nav-icon]::before {
 `
 
 /**
- * Inject the stylesheet once (stable id; HMR-safe).
+ * Inject the stylesheet once, self-healing a neutered element.
+ *
+ * The stable id keeps injection idempotent across HMR re-runs, but an element
+ * that exists WITHOUT live rules (emptied, detached with the head, or
+ * neutralized by policy) must not satisfy the guard: that leaves every surface
+ * unstyled with nothing thrown and nothing logged. When the element yields no
+ * sheet, the text is adopted through the constructable-stylesheet API, which
+ * does not depend on a `<style>` element being honored.
  */
 export function adoptStyles(): void {
-  if (document.getElementById(STYLE_ID) !== null) return
+  const existing = document.getElementById(STYLE_ID)
+  if (existing instanceof HTMLStyleElement && (existing.sheet?.cssRules.length ?? 0) > 0) return
+  existing?.remove()
   const style = document.createElement('style')
   style.id = STYLE_ID
   style.textContent = cssText
   document.head.appendChild(style)
+  if ((style.sheet?.cssRules.length ?? 0) > 0) return
+  try {
+    const sheet = new CSSStyleSheet()
+    sheet.replaceSync(cssText)
+    document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet]
+  } catch {
+    /* no constructable stylesheets here: the element was the only option */
+  }
 }
