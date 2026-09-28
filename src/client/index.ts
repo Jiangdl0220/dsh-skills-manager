@@ -71,7 +71,13 @@ export function apply(ctx: ClientContext): void {
   // runtime-less internal forks). The section component reads the handle
   // from the module holder.
   ctx.effect(async () => {
-    const dispose = await ctx.remote.$mount(SKILLS_MANAGER_REMOTE)
+    // `@deepseek-ai/dsh-client-runtime` is type-only here and its newest
+    // published release (0.1.1-rc.2) still describes the pre-0.1.7 codec shape
+    // (`schema` instead of `create`), so its `$mount` signature cannot accept a
+    // 0.1.7 manifest. The running 0.1.7 client gateway validates the real
+    // `create` shape, so the contribution is bridged at this one call site.
+    const mount = ctx.remote.$mount as unknown as (contribution: typeof SKILLS_MANAGER_REMOTE) => Promise<() => void>
+    const dispose = await mount(SKILLS_MANAGER_REMOTE)
     const face = (ctx.reflect as unknown as { get(name: string): unknown }).get('remote.skills-manager') as
       | SkillsManagerNamespaceFace
       | undefined

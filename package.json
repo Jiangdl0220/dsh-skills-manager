@@ -1,6 +1,6 @@
 {
   "name": "@jiangdaoli/dsh-skills-manager",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Manage installed DeepSeek Harness skills: browse the full catalog in Settings (beyond the \"/\" picker), enable/disable without uninstalling, and delete into a restorable trash. Works on desktop and web.",
   "type": "module",
   "repository": {
@@ -58,22 +58,22 @@
   },
   "license": "MIT",
   "peerDependencies": {
-    "@deepseek-ai/cordis": "^4.0.1",
-    "@deepseek-ai/dsh-client-locale": "^0.1.0-rc.7",
+    "@deepseek-ai/cordis": "^4.0.4",
+    "@deepseek-ai/dsh-client-locale": ">=0.1.7-rc.2 <0.2.0",
     "@deepseek-ai/dsh-client-runtime": "^0.1.0-rc.7",
-    "@deepseek-ai/dsh-client-ui-settings": "^0.1.0-rc.7",
-    "@deepseek-ai/dsh-client-ui-slots": "^0.1.0-rc.7",
-    "@deepseek-ai/dsh-typert-protocol": "^0.1.0-rc.7",
-    "@deepseek-ai/dsh-typert-registry": "^0.1.0-rc.7"
+    "@deepseek-ai/dsh-client-ui-settings": ">=0.1.7-rc.2 <0.2.0",
+    "@deepseek-ai/dsh-client-ui-slots": ">=0.1.7-rc.2 <0.2.0",
+    "@deepseek-ai/dsh-typert-protocol": ">=0.1.7-rc.2 <0.2.0",
+    "@deepseek-ai/dsh-typert-registry": ">=0.1.7-rc.2 <0.2.0"
   },
   "devDependencies": {
-    "@deepseek-ai/cordis": "^4.0.1",
-    "@deepseek-ai/dsh-client-locale": "^0.1.0-rc.7",
+    "@deepseek-ai/cordis": "^4.0.4",
+    "@deepseek-ai/dsh-client-locale": "0.1.7-rc.2",
     "@deepseek-ai/dsh-client-runtime": "^0.1.0-rc.7",
-    "@deepseek-ai/dsh-client-ui-settings": "^0.1.0-rc.7",
-    "@deepseek-ai/dsh-client-ui-slots": "^0.1.0-rc.7",
-    "@deepseek-ai/dsh-typert-protocol": "^0.1.0-rc.7",
-    "@deepseek-ai/dsh-typert-registry": "^0.1.0-rc.7",
+    "@deepseek-ai/dsh-client-ui-settings": "0.1.7-rc.2",
+    "@deepseek-ai/dsh-client-ui-slots": "0.1.7-rc.2",
+    "@deepseek-ai/dsh-typert-protocol": "0.1.7-rc.2",
+    "@deepseek-ai/dsh-typert-registry": "0.1.7-rc.2",
     "@types/node": "^24.0.0",
     "@types/react": "~18.3.1",
     "esbuild": "^0.25.0",

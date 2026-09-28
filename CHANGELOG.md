@@ -2,6 +2,16 @@
 
 本文件记录 `@jiangdaoli/dsh-skills-manager` 的每个版本变更，随 npm 包一起发布；GitHub Release 页面同步对应说明。
 
+## 0.1.5 — 2026-09-28
+
+### 修复
+- **适配 DSH 0.1.7 的 Typert 严格编解码器**：0.1.7 起严格编解码器从 `{ mode: 'strict', typeSymbol, schema }` 改为 `{ mode: 'strict', typeSymbol, create: () => schema }`（网关按 `codec.create().parse(value)` 解码）。旧写法仍能 import，但 `TypertRegistry` 会在注册清单时抛 `typert: dsh-skills-manager#skills-manager/list result strict codec has no create() factory`，整个插件静默不挂载 —— 设置页「技能管理」随之消失。5 个方法的结果编解码器与 4 个请求参数编解码器均已改为 `create()` 工厂。
+- **构建期依赖对齐 0.1.7 包线**：`@deepseek-ai/dsh-*` → `0.1.7-rc.2`、`@deepseek-ai/cordis` → `^4.0.4`；`@deepseek-ai/dsh-client-runtime` 无 0.1.7 版本，其类型仍停留在旧编解码器形状，故仅在客户端 `$mount` 一处做了带注释的桥接。
+
+### 测试
+- 新增 `test/wire-contract.test.mjs`：用真实的 0.1.7 `TypertRegistry` 注册本插件清单，断言每个严格编解码器都带 `create()`；另加一条 canary 断言，证明旧的 `schema` 写法确实会被注册表拒绝。
+- 已知问题（先于本版存在）：`test/core.test.mjs` 导入的 `lib/core-test.cjs` 已不由 `build.mjs` 产出，该测试当前无法运行。
+
 ## 0.1.4 — 2026-08-27
 
 ### 新增

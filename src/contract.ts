@@ -138,7 +138,7 @@ export const SKILLS_MANAGER_INVOCATIONS: readonly InvocationDescriptor[] = [
     result: {
       mode: 'strict',
       typeSymbol: 'dsh-skills-manager#SkillListResult',
-      schema: skillListResultSchema,
+      create: () => skillListResultSchema,
     },
   },
   {
@@ -155,14 +155,14 @@ export const SKILLS_MANAGER_INVOCATIONS: readonly InvocationDescriptor[] = [
         codec: {
           mode: 'strict',
           typeSymbol: 'dsh-skills-manager#SetEnabledRequest',
-          schema: setEnabledRequestSchema,
+          create: () => setEnabledRequestSchema,
         },
       },
     ],
     result: {
       mode: 'strict',
       typeSymbol: 'dsh-skills-manager#SetEnabledResult',
-      schema: setEnabledResultSchema,
+      create: () => setEnabledResultSchema,
     },
   },
   {
@@ -179,14 +179,14 @@ export const SKILLS_MANAGER_INVOCATIONS: readonly InvocationDescriptor[] = [
         codec: {
           mode: 'strict',
           typeSymbol: 'dsh-skills-manager#TrashRequest',
-          schema: trashRequestSchema,
+          create: () => trashRequestSchema,
         },
       },
     ],
     result: {
       mode: 'strict',
       typeSymbol: 'dsh-skills-manager#TrashResult',
-      schema: trashResultSchema,
+      create: () => trashResultSchema,
     },
   },
   {
@@ -203,14 +203,14 @@ export const SKILLS_MANAGER_INVOCATIONS: readonly InvocationDescriptor[] = [
         codec: {
           mode: 'strict',
           typeSymbol: 'dsh-skills-manager#RestoreRequest',
-          schema: restoreRequestSchema,
+          create: () => restoreRequestSchema,
         },
       },
     ],
     result: {
       mode: 'strict',
       typeSymbol: 'dsh-skills-manager#RestoreResult',
-      schema: restoreResultSchema,
+      create: () => restoreResultSchema,
     },
   },
   {
@@ -227,14 +227,14 @@ export const SKILLS_MANAGER_INVOCATIONS: readonly InvocationDescriptor[] = [
         codec: {
           mode: 'strict',
           typeSymbol: 'dsh-skills-manager#DeleteForeverRequest',
-          schema: deleteForeverRequestSchema,
+          create: () => deleteForeverRequestSchema,
         },
       },
     ],
     result: {
       mode: 'strict',
       typeSymbol: 'dsh-skills-manager#DeleteForeverResult',
-      schema: deleteForeverResultSchema,
+      create: () => deleteForeverResultSchema,
     },
   },
 ]
