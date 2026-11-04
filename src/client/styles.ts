@@ -223,6 +223,14 @@ export const cssText = `
   min-width: 0;
   color: var(--dsw-alias-label-secondary);
 }
+.dsh_skm_confirm_error {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 45%;
+  color: var(--dsw-alias-state-error-primary);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
 .dsh_skm_pager {
   display: flex;
   align-items: center;

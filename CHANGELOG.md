@@ -2,6 +2,15 @@
 
 本文件记录 `@jiangdaoli/dsh-skills-manager` 的每个版本变更，随 npm 包一起发布；GitHub Release 页面同步对应说明。
 
+## 0.1.6 — 2026-10-30
+
+### 修复
+- **点击「停用 / 删除 / 恢复」的确认后无反应**：DSH 0.2.x 的 `ctx.shell` 已从 `resolve() + run()` 改为 `resolve() + execute() + result()`，插件仍在调用 `shell.run()`，每次文件操作都抛 `TypeError`；失败信息显示在列表顶部，滚动到下方条目时看不见，表现为「点了没反应」。现改用 `execute().result()`，并把错误显示在确认条内。
+- **桌面端文件操作被沙箱拒绝**：插件以无会话身份调用 `ctx.shell` / `ctx.fs`，`ctx.sandboxPolicy.resolve()` 会回落到部署默认策略（桌面 Host 的 workspaceRoot 是其 profile 目录），对 `~/.agents/skills`、`~/.dsh/skills` 的 `mv` 会被拒。现按操作范围显式传入 workspace-write 策略：改名用技能根，回收站/恢复用「源路径与回收站」的最近公共目录；模式仍为 workspace-write，不关闭沙箱。
+
+### 测试
+- `test/core.test.mjs` 的 shell 假实现改为新 API，并新增两条断言：改名使用以技能根为界的 workspace-write 策略；回收站移动使用公共祖先根。
+
 ## 0.1.5 — 2026-09-28
 
 ### 修复

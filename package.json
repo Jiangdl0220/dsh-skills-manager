@@ -1,6 +1,6 @@
 {
   "name": "@jiangdaoli/dsh-skills-manager",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Manage installed DeepSeek Harness skills: browse the full catalog in Settings (beyond the \"/\" picker), enable/disable without uninstalling, and delete into a restorable trash. Works on desktop and web.",
   "type": "module",
   "repository": {
@@ -54,7 +54,8 @@
   "scripts": {
     "build": "rm -rf lib && tsc -p tsconfig.json && node build.mjs",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "pnpm build"
+    "test": "node build.mjs && ./node_modules/.bin/esbuild src/core.ts --bundle --format=cjs --platform=node --target=node22 --outfile=lib/core-test.cjs --log-level=error && node --test test/*.test.mjs",
+    "prepublishOnly": "pnpm build && pnpm test"
   },
   "license": "MIT",
   "peerDependencies": {

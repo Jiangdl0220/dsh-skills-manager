@@ -48,14 +48,19 @@ const fs = {
   },
 }
 
+const shellPolicies = []
 const shell = {
-  resolve(request) { return request },
-  async run(spec) {
-    try {
-      const out = execFileSync('bash', ['-c', spec.command], { encoding: 'utf8' })
-      return { exitCode: 0, stdout: out, stderr: '' }
-    } catch (error) {
-      return { exitCode: error.status ?? 1, stdout: String(error.stdout ?? ''), stderr: String(error.stderr ?? '') }
+  resolve(request) { shellPolicies.push(request.sandboxPolicy); return request },
+  async execute(spec) {
+    return {
+      async result() {
+        try {
+          const out = execFileSync('bash', ['-c', spec.command], { encoding: 'utf8' })
+          return { exitCode: 0, stdout: { text: out }, stderr: { text: '' } }
+        } catch (error) {
+          return { exitCode: error.status ?? 1, stdout: { text: String(error.stdout ?? '') }, stderr: { text: String(error.stderr ?? '') } }
+        }
+      },
     }
   },
 }
@@ -119,6 +124,7 @@ console.log('\n[2] disable')
 const dirSkill = list.find((s) => s.name === 'zz-test-skill')
 await core.setSkillEnabled(fs, shell, roots, 'zz-test-skill', dirSkill.manageFile, false)
 check('SKILL.md renamed to .disabled', existsSync(join(ROOT, '.dsh', 'skills', 'zz-test-skill', 'SKILL.md.disabled')) && !existsSync(join(ROOT, '.dsh', 'skills', 'zz-test-skill', 'SKILL.md')), '')
+check('rename runs under a workspace-write policy rooted at the skill root', shellPolicies.some((policy) => policy !== undefined && policy.mode === 'workspace-write' && policy.workspaceRoot === roots.userDsh), JSON.stringify(shellPolicies))
 list = await core.listManagedSkills(fs, skillsCatalog, roots)
 check('disabled skill listed as disabled', list.some((s) => s.name === 'zz-test-skill' && s.state === 'disabled' && s.manageFileDisabled?.endsWith('SKILL.md.disabled')), JSON.stringify(list.map((s) => `${s.name}:${s.state}`)))
 
@@ -134,6 +140,7 @@ list = await core.listManagedSkills(fs, skillsCatalog, roots)
 const enabledSkill = list.find((s) => s.name === 'zz-test-skill')
 await core.trashSkill(fs, shell, roots, 'zz-test-skill', enabledSkill.path)
 check('dir moved into trash', existsSync(join(ROOT, '.dsh', '.skill-trash', 'zz-test-skill-1')) === false && readdirSync(join(ROOT, '.dsh', '.skill-trash')).some((n) => n.startsWith('zz-test-skill-')), readdirSync(join(ROOT, '.dsh', '.skill-trash')).join(','))
+check('trash move is confined to the common ancestor root', shellPolicies.some((policy) => policy !== undefined && policy.workspaceRoot === join(ROOT, '.dsh')), JSON.stringify(shellPolicies.slice(-3)))
 list = await core.listManagedSkills(fs, skillsCatalog, roots)
 const trashed = list.find((s) => s.name === 'zz-test-skill' && s.state === 'trashed')
 check('trashed listed with original path', trashed !== undefined && trashed.originalPath === enabledSkill.path && trashed.trashDir !== null, JSON.stringify(trashed))

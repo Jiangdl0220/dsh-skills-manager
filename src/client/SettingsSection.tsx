@@ -165,7 +165,7 @@ export function SettingsSection(_props: PropsRuntime<'settings.section'>): React
       </button>
     </div>,
   )
-  if (actionError !== null) rows.push(<div className="dsh_skm_error" key="actionError">⚠ {actionError}</div>)
+  if (actionError !== null && confirm === null) rows.push(<div className="dsh_skm_error" key="actionError">⚠ {actionError}</div>)
   if (list.error !== null) rows.push(<div className="dsh_skm_error" key="listError">⚠ {t('loadFailed')}: {list.error}</div>)
   if (list.loading && items.length === 0) rows.push(<div className="dsh_skm_empty" key="loading">{t('loading')}</div>)
   if (!list.loading && list.error === null && filtered.length === 0) {
@@ -266,6 +266,7 @@ export function SettingsSection(_props: PropsRuntime<'settings.section'>): React
       itemRows.push(
         <div className="dsh_skm_confirm" key={`${key}:confirm`}>
           <span className="dsh_skm_confirm_text">{label}</span>
+          {actionError !== null ? <span className="dsh_skm_confirm_error">⚠ {actionError}</span> : null}
           <button
             className="dsh_skm_btn dsh_skm_btn_danger" disabled={busy}
             onClick={() => {

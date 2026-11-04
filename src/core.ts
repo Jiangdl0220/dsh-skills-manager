@@ -8,6 +8,12 @@
  */
 import type { SkillEntry } from './contract.ts'
 
+/** One capability-call sandbox policy (`ctx.sandboxPolicy` shape). */
+export interface SandboxPolicyLike {
+  readonly mode: 'read-only' | 'workspace-write' | 'danger-full-access'
+  readonly workspaceRoot: string
+}
+
 /** Minimal structural face of `ctx.fs` (the subset the core uses). */
 export interface FsLike {
   resolve(path: string, opts?: { cwd?: string; signal?: AbortSignal }): Promise<FsTargetLike>
@@ -15,7 +21,7 @@ export interface FsLike {
   stat(target: FsTargetLike, signal?: AbortSignal): Promise<{ type?: string } | undefined>
   listDir(target: FsTargetLike, signal?: AbortSignal): Promise<FsDirEntryLike[]>
   readText(target: FsTargetLike, signal?: AbortSignal): Promise<string>
-  writeText(target: FsTargetLike, content: string, expected?: unknown, signal?: AbortSignal): Promise<unknown>
+  writeText(target: FsTargetLike, content: string, expected?: unknown, signal?: AbortSignal, sandboxPolicy?: SandboxPolicyLike): Promise<unknown>
 }
 export interface FsTargetLike {
   readonly targetKey: string
@@ -27,10 +33,24 @@ export interface FsDirEntryLike {
   readonly target: FsTargetLike
 }
 
-/** Minimal structural face of `ctx.shell`. */
+/** One finished foreground run (the capability's `ShellRunResult` shape). */
+export interface ShellRunResultLike {
+  readonly exitCode: number | null
+  readonly signal?: string | null
+  readonly stdout?: { readonly text: string } | undefined
+  readonly stderr?: { readonly text: string } | undefined
+  readonly sandbox?: { readonly mode: string; readonly denied: boolean } | undefined
+}
+
+/** Minimal structural face of `ctx.shell` (resolve → execute → result). */
 export interface ShellLike {
-  resolve(request: { command: string; timeoutMs?: number; cwd?: string }): unknown
-  run(spec: unknown): Promise<{ exitCode: number; stdout: string; stderr: string }>
+  resolve(request: {
+    command: string
+    timeoutMs?: number
+    cwd?: string
+    sandboxPolicy?: SandboxPolicyLike
+  }): unknown
+  execute(spec: unknown): Promise<{ result(): Promise<ShellRunResultLike> }>
 }
 
 /** Minimal structural face of `ctx.skills.list()` summaries. */
@@ -505,13 +525,49 @@ export function shellQuote(path: string): string {
   return `'${path.replace(/'/g, `'\\''`)}'`
 }
 
-/** Run one guarded shell mutation; throws a user-readable error on nonzero exit. */
-export async function runShellCommand(shell: ShellLike, command: string): Promise<void> {
-  const spec = shell.resolve({ command, timeoutMs: 20000 })
-  const result = await shell.run(spec)
-  if (result.exitCode !== 0) {
-    const detail = (result.stderr ?? '').trim() !== '' ? result.stderr.trim() : result.stdout.trim()
-    throw new Error(`命令执行失败 (exit ${result.exitCode})${detail !== '' ? `: ${detail}` : ''}`)
+/** The per-call policy for a plugin-initiated mutation confined to one root. */
+export function sandboxPolicyFor(root: string): SandboxPolicyLike {
+  return { mode: 'workspace-write', workspaceRoot: root }
+}
+
+/** Deepest directory shared by two absolute POSIX paths. */
+export function commonAncestor(a: string, b: string): string {
+  const left = a.split('/').filter((part) => part !== '')
+  const right = b.split('/').filter((part) => part !== '')
+  const shared: string[] = []
+  for (let i = 0; i < Math.min(left.length, right.length); i++) {
+    if (left[i] !== right[i]) break
+    shared.push(left[i])
+  }
+  if (shared.length === 0) throw new Error(`无法确定公共目录: ${a} / ${b}`)
+  return `/${shared.join('/')}`
+}
+
+/**
+ * Run one guarded shell mutation under an explicit capability policy.
+ *
+ * The plugin is trusted host code acting on a user-confirmed settings action,
+ * but `ctx.shell` still resolves the deployment sandbox for agentless callers
+ * (the desktop Host's deployment root is its own profile directory). Passing
+ * the narrowest root that contains the mutation keeps workspace-write
+ * confinement instead of falling back to the deployment default and having
+ * `mv` denied.
+ * @param shell - shell service face.
+ * @param command - fixed command string built from guarded paths.
+ * @param policy - per-call sandbox policy confining the command.
+ */
+export async function runShellCommand(shell: ShellLike, command: string, policy: SandboxPolicyLike): Promise<void> {
+  const spec = shell.resolve({ command, timeoutMs: 20000, sandboxPolicy: policy })
+  const execution = await shell.execute(spec)
+  const result = await execution.result()
+  const stdout = result.stdout?.text ?? ''
+  const stderr = result.stderr?.text ?? ''
+  if (result.sandbox?.denied) {
+    throw new Error(`文件操作被沙箱拒绝 (${result.sandbox.mode}): ${command}`)
+  }
+  if (result.exitCode !== 0 || result.signal) {
+    const detail = stderr.trim() !== '' ? stderr.trim() : stdout.trim()
+    throw new Error(`命令执行失败 (exit ${result.exitCode ?? result.signal})${detail !== '' ? `: ${detail}` : ''}`)
   }
 }
 
@@ -554,9 +610,15 @@ export async function setSkillEnabled(
   path: string,
   enabled: boolean,
 ): Promise<void> {
-  const canonical = await guardInside(fs, roots.userDsh, path, '技能').catch(async () => {
-    return await guardInside(fs, roots.userAgents, path, '技能')
-  })
+  let canonical: string
+  let root: string
+  try {
+    canonical = await guardInside(fs, roots.userDsh, path, '技能')
+    root = roots.userDsh
+  } catch {
+    canonical = await guardInside(fs, roots.userAgents, path, '技能')
+    root = roots.userAgents
+  }
   const base = canonical.replace(/\.disabled$/, '')
   const baseName = base.slice(base.lastIndexOf('/') + 1)
   if (baseName !== SKILL_FILE && !baseName.endsWith('.md')) {
@@ -568,7 +630,7 @@ export async function setSkillEnabled(
   if (sourceTarget === undefined) throw new Error(`找不到 ${enabled ? '已停用' : '技能'}文件: ${source}`)
   const info = await safeStat(fs, sourceTarget)
   if (info?.type !== 'file') throw new Error(`技能文件不是常规文件: ${source}`)
-  await runShellCommand(shell, `mv -- ${shellQuote(source)} ${shellQuote(dest)}`)
+  await runShellCommand(shell, `mv -- ${shellQuote(source)} ${shellQuote(dest)}`, sandboxPolicyFor(root))
 }
 
 /**
@@ -586,18 +648,22 @@ export async function trashSkill(
   name: string,
   path: string,
 ): Promise<void> {
-  const canonical = await guardInside(fs, roots.userDsh, path, '技能').catch(async () => {
-    return await guardInside(fs, roots.userAgents, path, '技能')
-  })
-  await runShellCommand(shell, `mkdir -p -- ${shellQuote(roots.trash)}`)
+  let canonical: string
+  try {
+    canonical = await guardInside(fs, roots.userDsh, path, '技能')
+  } catch {
+    canonical = await guardInside(fs, roots.userAgents, path, '技能')
+  }
+  const policy = sandboxPolicyFor(commonAncestor(canonical, roots.trash))
+  await runShellCommand(shell, `mkdir -p -- ${shellQuote(roots.trash)}`, policy)
   const safeName = name.replace(/[^A-Za-z0-9_.-]/g, '-').replace(/^-+|-+$/g, '') || 'skill'
   const stamp = Date.now()
   const trashEntry = `${roots.trash}/${safeName}-${stamp}`
-  await runShellCommand(shell, `mv -- ${shellQuote(canonical)} ${shellQuote(trashEntry)}`)
+  await runShellCommand(shell, `mv -- ${shellQuote(canonical)} ${shellQuote(trashEntry)}`, policy)
   const sidecar = `${trashEntry}.json`
   const sidecarTarget = await safeResolve(fs, sidecar)
   if (sidecarTarget === undefined) throw new Error('回收站记录写入失败')
-  await fs.writeText(sidecarTarget, JSON.stringify({ name, originalPath: canonical, trashedAt: stamp }))
+  await fs.writeText(sidecarTarget, JSON.stringify({ name, originalPath: canonical, trashedAt: stamp }), undefined, undefined, policy)
 }
 
 /**
@@ -629,11 +695,12 @@ export async function restoreSkill(
   const origin = await guardInside(fs, roots.userDsh, originalPath, '技能').catch(async () => {
     return await guardInside(fs, roots.userAgents, originalPath, '技能')
   })
+  const policy = sandboxPolicyFor(commonAncestor(canonical, origin))
   const parent = origin.slice(0, origin.lastIndexOf('/'))
   const parentTarget = await safeResolve(fs, parent)
-  if (parentTarget === undefined) await runShellCommand(shell, `mkdir -p -- ${shellQuote(parent)}`)
-  await runShellCommand(shell, `mv -- ${shellQuote(canonical)} ${shellQuote(origin)}`)
-  await runShellCommand(shell, `rm -f -- ${shellQuote(`${canonical}.json`)}`)
+  if (parentTarget === undefined) await runShellCommand(shell, `mkdir -p -- ${shellQuote(parent)}`, policy)
+  await runShellCommand(shell, `mv -- ${shellQuote(canonical)} ${shellQuote(origin)}`, policy)
+  await runShellCommand(shell, `rm -f -- ${shellQuote(`${canonical}.json`)}`, policy)
 }
 
 /**
@@ -652,6 +719,7 @@ export async function deleteSkillForever(
   trashDir: string,
 ): Promise<void> {
   const canonical = await guardInside(fs, roots.trash, trashDir, '回收站条目')
-  await runShellCommand(shell, `rm -rf -- ${shellQuote(canonical)}`)
-  await runShellCommand(shell, `rm -f -- ${shellQuote(`${canonical}.json`)}`)
+  const policy = sandboxPolicyFor(roots.trash)
+  await runShellCommand(shell, `rm -rf -- ${shellQuote(canonical)}`, policy)
+  await runShellCommand(shell, `rm -f -- ${shellQuote(`${canonical}.json`)}`, policy)
 }
